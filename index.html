@@ -142,7 +142,7 @@ h4.sub{font-size:15px;color:var(--bld);margin:18px 0 6px;}
     <div class="ct">老師端示範：查詢作答</div>
     <div class="grid2">
       <div><label class="fl">輸入老師信箱查詢</label><input class="in" id="d-query" placeholder="輸入上面填過的信箱"></div>
-      <div style="display:flex;align-items:flex-end;"><button class="copybtn" style="width:100%;padding:11px;" onclick="demoQuery()">🔍 查詢</button></div>
+      <div style="display:flex;align-items:flex-end;"><button class="copybtn" id="q-btn" style="width:100%;padding:11px;" onclick="demoQuery()">🔍 查詢</button></div>
     </div>
     <h4 class="sub" id="sheet-title">📋 模擬試算表</h4>
     <div style="overflow-x:auto;">
@@ -240,7 +240,7 @@ async function submitAnswers(){
     if(out.status!=='ok')btn.disabled=false;
   }catch(err){btn.textContent='❌ 網路錯誤，請再試';btn.disabled=false;}
 }</pre>
-    <p class="small">實作要點：送出鈕三態（可按、送出中、已送出）防連按；必填檢查班級座號姓名與老師信箱；成功後保留畫面作答內容供學生截圖自存。</p>
+    <p class="small">實作要點：送出鈕與查詢鈕都要三態（可按、進行中、完成）＋防連按＋超過 4 秒顯示「後台喚醒中」耐心提示；逾時錯誤只在「沒有成功結果」時顯示，避免成功畫面之後又跳出過期的失敗警示；必填檢查班級座號姓名與老師信箱；成功後保留畫面作答內容供學生截圖自存。</p>
   </div>
 
   <div class="card">
@@ -357,13 +357,29 @@ function renderSheet(rows){
   if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--gray);">查無資料</td></tr>';return;}
   tb.innerHTML=rows.map(r=>'<tr>'+r.map(c=>'<td>'+String(c).replace(/</g,'&lt;')+'</td>').join('')+'</tr>').join('');
 }
-function demoQuery(){
+let qBusy=false,qSeq=0;
+async function demoQuery(){
   const q=document.getElementById('d-query').value.trim();
   if(!q){alert('請輸入老師信箱');return;}
   if(!DEMO_GAS_URL){renderSheet(demoRows.filter(r=>r[4]===q));return;}
-  fetch(DEMO_GAS_URL+'?email='+encodeURIComponent(q)).then(r=>r.json())
-    .then(o=>renderSheet((o.rows||[]).map(r=>[r[1],r[2],r[3],r[4],r[5],r[6],r[7]])))
-    .catch(()=>alert('查詢失敗，請確認後台部署'));
+  if(qBusy)return;                                  // 防連按
+  qBusy=true; const my=++qSeq;
+  const qb=document.getElementById('q-btn');
+  qb.disabled=true; qb.textContent='🔍 查詢中…';
+  const slow=setTimeout(()=>{qb.textContent='🔍 查詢中…（後台喚醒中，最長約半分鐘）';},4000);
+  try{
+    const r=await fetch(DEMO_GAS_URL+'?email='+encodeURIComponent(q));
+    const o=await r.json();
+    if(my===qSeq) renderSheet((o.rows||[]).map(x=>[x[1],x[2],x[3],x[4],x[5],x[6],x[7]]));
+  }catch(e){
+    if(my===qSeq){                                   // 過期請求的錯誤直接忽略，不跳警示
+      const tb=document.querySelector('#d-sheet tbody');
+      tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:#991b1b;">查詢逾時，後台可能剛喚醒，請再按一次查詢</td></tr>';
+    }
+  }finally{
+    clearTimeout(slow); qBusy=false;
+    qb.disabled=false; qb.textContent='🔍 查詢';
+  }
 }
 function copyCode(id,btn){
   navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
