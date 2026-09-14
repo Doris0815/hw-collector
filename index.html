@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>網頁作業回收模組｜免伺服器收作業方案（內部參考）</title>
+<style>
+:root{--blue:#2563eb;--bld:#1e3a8a;--green:#16a34a;--gl:#dcfce7;--amber:#d97706;--al:#fef3c7;--red:#dc2626;--rl:#fee2e2;--gray:#64748b;--grl:#f1f5f9;--grb:#cbd5e1;--line:#e2e8f0;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Microsoft JhengHei","PingFang TC",system-ui,sans-serif;background:#f8fafc;color:#0f172a;line-height:1.75;}
+.hero{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;padding:34px 24px 26px;text-align:center;}
+.hero h1{font-size:26px;letter-spacing:1px;}
+.hero p{opacity:.85;font-size:14.5px;margin-top:8px;max-width:760px;margin-left:auto;margin-right:auto;}
+.hero .tag{display:inline-block;margin-top:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:4px 16px;font-size:12.5px;}
+.tabs{display:flex;justify-content:center;gap:6px;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:0;z-index:50;flex-wrap:wrap;padding:0 8px;}
+.tab{padding:13px 22px;font-size:15px;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;user-select:none;}
+.tab:hover{color:var(--bld);}
+.tab.active{color:var(--bld);border-bottom-color:var(--blue);}
+.wrap{max-width:960px;margin:0 auto;padding:26px 18px 70px;}
+.panel{display:none;}
+.panel.active{display:block;}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(15,23,42,.08);padding:22px 26px;margin-bottom:18px;}
+.ct{font-size:17px;font-weight:800;color:var(--bld);margin-bottom:10px;}
+.cb{border-left:4px solid var(--blue);background:#eff6ff;border-radius:0 10px 10px 0;padding:12px 16px;margin:12px 0;font-size:14px;}
+.cb.gn{border-color:var(--green);background:var(--gl);}
+.cb.am{border-color:var(--amber);background:var(--al);}
+.cb.rd{border-color:var(--red);background:var(--rl);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0;}
+th{background:var(--bld);color:#fff;padding:8px 12px;text-align:left;font-weight:700;}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+tr:nth-child(even) td{background:#f8fafc;}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0;}
+.fstep{background:var(--grl);border:1.5px solid var(--grb);border-radius:10px;padding:12px 14px;font-size:13px;position:relative;}
+.fstep b{display:block;color:var(--bld);font-size:13.5px;margin-bottom:4px;}
+.fstep .n{position:absolute;top:-11px;left:12px;background:var(--blue);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:16px 18px;font-size:12.5px;overflow-x:auto;line-height:1.6;margin:10px 0;font-family:Consolas,Menlo,monospace;}
+.copybar{display:flex;justify-content:space-between;align-items:center;margin-top:14px;}
+.copybtn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;}
+.copybtn:hover{background:var(--bld);}
+.in{width:100%;padding:9px 12px;border:2px solid var(--grb);border-radius:8px;font-size:14px;font-family:inherit;}
+.in:focus{outline:none;border-color:var(--blue);}
+label.fl{font-size:13px;font-weight:700;color:var(--bld);display:block;margin:10px 0 4px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.bigbtn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-top:16px;}
+.bigbtn:disabled{background:#94a3b8;cursor:default;}
+.demo-note{font-size:12px;color:var(--gray);margin-top:8px;}
+.badge{display:inline-block;background:var(--al);color:#92400e;border-radius:6px;padding:2px 10px;font-size:12px;font-weight:700;margin-left:8px;vertical-align:middle;}
+.badge.live{background:var(--gl);color:#166534;}
+h4.sub{font-size:15px;color:var(--bld);margin:18px 0 6px;}
+.small{font-size:12.5px;color:var(--gray);}
+@media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}.tab{padding:11px 12px;font-size:13.5px;}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>網頁作業回收模組</h1>
+  <p>讓任何互動網頁教材，多一顆「送出作業」按鈕。後台由我們在產品所屬帳號一次部署；學生按下送出，作答自動歸檔；老師什麼都不用安裝，輸入自己的信箱就能領回自己學生的作業。</p>
+  <div class="tag">內部參考資料｜供各科數位品項規劃評估使用</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="swTab(0)">① 這是什麼</div>
+  <div class="tab" onclick="swTab(1)">② 現場示範</div>
+  <div class="tab" onclick="swTab(2)">③ 技術規格</div>
+  <div class="tab" onclick="swTab(3)">④ 導入須知</div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══════════ ① 這是什麼 ═══════════ -->
+<div class="panel active" id="p0">
+  <div class="card">
+    <div class="ct">一句話說明</div>
+    <p style="font-size:15px;">這是一套「不用架伺服器」的作業回收架構：由品項端把一小段程式（Google Apps Script）部署在<strong>數位產品所屬的 Google 帳號</strong>，任何 HTML 教材網頁都能把學生作答送進對應的試算表。學生送出時填「任課老師信箱」，老師之後輸入自己的信箱，就只會看到自己學生的作答。<strong>老師端零建置</strong>。</p>
+    <div class="cb gn"><strong>已實戰驗證：</strong>本模式已在物理科「氣柱共鳴模擬實驗」實際運作，學生端送出與老師端查詢皆通過測試。</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">學生端體驗</div>
+    <div class="flow">
+      <div class="fstep"><span class="n">1</span><b>完成互動教材</b>在模擬實驗、學習單等網頁中作答</div>
+      <div class="fstep"><span class="n">2</span><b>填基本資料</b>班級、座號、姓名、任課老師信箱</div>
+      <div class="fstep"><span class="n">3</span><b>按「送出」</b>作答自動打包送進老師的試算表</div>
+    </div>
+    <div class="ct" style="margin-top:20px;">老師端體驗</div>
+    <div class="flow">
+      <div class="fstep"><span class="n">1</span><b>零設定</b>不用安裝、不用申請、不用部署任何東西</div>
+      <div class="fstep"><span class="n">2</span><b>公告信箱</b>上課時告訴學生「老師信箱欄」填什麼</div>
+      <div class="fstep"><span class="n">3</span><b>查詢下載</b>在查詢頁輸入自己的信箱，看自己學生的作答、下載 CSV</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">為什麼值得用</div>
+    <table>
+      <tr><th style="width:150px;">特點</th><th>說明</th></tr>
+      <tr><td><strong>免伺服器、零費用</strong></td><td>後台跑在 Google 免費額度內，不需租主機、不需維運</td></tr>
+      <tr><td><strong>老師零門檻</strong></td><td>老師不用做任何設定，只要有 email。這是推廣時最大的賣點</td></tr>
+      <tr><td><strong>嵌入任何網頁</strong></td><td>學習單、模擬實驗、電子書配套頁，只要是 HTML 都能接，前端只需十幾行程式</td></tr>
+      <tr><td><strong>收結構化資料</strong></td><td>不只文字作答：操作紀錄、選項分布、得分等互動資料都能自動打包送出</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="ct">適用與不適用</div>
+    <div class="cb gn"><strong>適合：</strong>互動式數位教材要收「學生做了什麼」的結構化資料，例如模擬實驗的操作數據與論證作答、互動學習單的逐題結果、遊戲化教材的關卡紀錄。</div>
+    <div class="cb am"><strong>不必用：</strong>單純收文字問答或心得，Google 表單就夠了，不需要動用本模組。本模組的價值在「表單做不到的互動資料回收」。</div>
+    <h4 class="sub">與 Google 表單的差異</h4>
+    <table>
+      <tr><th></th><th>Google 表單</th><th>本模組</th></tr>
+      <tr><td>學生填答方式</td><td>離開教材，另開表單手動填寫</td><td>留在教材內，一鍵自動送出</td></tr>
+      <tr><td>能收的資料</td><td>學生手動輸入的內容</td><td>教材內的任何資料（操作紀錄、得分、作答）</td></tr>
+      <tr><td>建置門檻</td><td>零</td><td>一次性部署約十分鐘（本站附完整教學）</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════ ② 現場示範 ═══════════ -->
+<div class="panel" id="p1">
+  <div class="card">
+    <div class="ct">學生端示範：迷你學習單 <span class="badge" id="mode-badge">模擬模式</span></div>
+    <p class="small" id="mode-desc">目前為模擬模式：按送出不會真的連網，資料會出現在下方的「模擬試算表」，讓你體驗完整流程。接上真實後台（技術規格分頁）後，同一顆按鈕就會把資料寫進產品帳號的 Google 試算表。</p>
+    <div class="grid3" style="margin-top:12px;">
+      <div><label class="fl">班級</label><input class="in" id="d-cls" placeholder="例：高二甲"></div>
+      <div><label class="fl">座號</label><input class="in" id="d-seat" placeholder="例：08"></div>
+      <div><label class="fl">姓名</label><input class="in" id="d-name" placeholder="例：王小明"></div>
+    </div>
+    <label class="fl">任課老師信箱（查詢主鍵）</label>
+    <input class="in" id="d-email" placeholder="例：teacher@school.edu.tw">
+    <label class="fl">示範題 1：這學期印象最深的一堂課是？</label>
+    <input class="in" id="d-q1" placeholder="自由作答">
+    <label class="fl">示範題 2：教材互動資料（自動帶入，模擬「教材替學生打包」）</label>
+    <input class="in" id="d-q2" value="操作 3 次｜測驗得分 4/5｜停留 6 分 12 秒" readonly style="background:var(--grl);">
+    <button class="bigbtn" id="d-submit" onclick="demoSubmit()">✅ 送出作業</button>
+    <p class="demo-note">送出鈕為三態設計（可按、送出中、已送出），避免學生重複送出。</p>
+  </div>
+
+  <div class="card">
+    <div class="ct">老師端示範：查詢作答</div>
+    <div class="grid2">
+      <div><label class="fl">輸入老師信箱查詢</label><input class="in" id="d-query" placeholder="輸入上面填過的信箱"></div>
+      <div style="display:flex;align-items:flex-end;"><button class="copybtn" style="width:100%;padding:11px;" onclick="demoQuery()">🔍 查詢</button></div>
+    </div>
+    <h4 class="sub" id="sheet-title">📋 模擬試算表</h4>
+    <div style="overflow-x:auto;">
+    <table id="d-sheet">
+      <thead><tr><th>時間</th><th>班級</th><th>座號</th><th>姓名</th><th>老師信箱</th><th>示範題1</th><th>互動資料</th></tr></thead>
+      <tbody><tr id="d-empty"><td colspan="7" style="text-align:center;color:var(--gray);">尚無資料，請先在上方送出一筆</td></tr></tbody>
+    </table>
+    </div>
+    <p class="demo-note">實際運作時，這張表存放在產品所屬帳號；老師用查詢頁憑信箱取回自己學生的部分，可下載 CSV。</p>
+  </div>
+</div>
+
+<!-- ═══════════ ③ 技術規格 ═══════════ -->
+<div class="panel" id="p2">
+  <div class="card">
+    <div class="cb am"><strong>本頁對象：</strong>接手實作的數位編輯（數編）。規劃端同事只需知道：把本頁網址交給數編，並依「導入須知」預留欄位即可。</div>
+    <div class="ct">系統架構</div>
+    <p style="font-size:14px;">前端（任何 HTML 頁）→ POST 送出 → Google Apps Script（<strong>產品所屬帳號</strong>，一次部署為網路應用程式）→ 寫入產品帳號的 Google 試算表。老師查詢走同一網址的 GET，以「任課老師信箱」為篩選主鍵，各老師只取回自己的資料。無資料庫、無伺服器、無第三方套件。建議每個品項各開一張試算表（各自部署一份），互不干擾。</p>
+  </div>
+
+  <div class="card">
+    <div class="copybar"><div class="ct" style="margin:0;">後台程式碼（GAS 通用範本）</div><button class="copybtn" onclick="copyCode('code-gas',this)">📋 複製程式碼</button></div>
+    <p class="small">客製只改兩處：HEADERS 欄位定義、doPost 的 appendRow 對應。其餘為驗證過的穩定件，勿動。</p>
+    <pre id="code-gas">const SHEET_NAME = 'Sheet1';
+const VERSION = 'v1-〔作業名稱〕';   // 每次改版順手改，方便確認部署版本
+
+// ★客製點 1：欄位（前六欄建議保留，「任課老師信箱」是查詢主鍵）
+const HEADERS = ['作業','時間戳記','班級','座號','姓名','任課老師信箱','作答欄位1','作答欄位2'];
+
+function getSheet(){return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME)||SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];}
+function ensureHeaders(sheet){
+  if(sheet.getLastRow()===0){
+    sheet.appendRow(HEADERS);
+    sheet.getRange(1,1,1,HEADERS.length).setBackground('#1e3a8a').setFontColor('#ffffff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+}
+/** 學生送出作答 */
+function doPost(e){
+  try{
+    const data=JSON.parse(e.parameter.data);
+    const sheet=getSheet(); ensureHeaders(sheet);
+    // ★客製點 2：與 HEADERS 一一對應
+    sheet.appendRow([
+      data.exp||'', data.timestamp||new Date().toLocaleString('zh-TW'),
+      data.cls||'', data.seat||'', data.name||'', data.teacherEmail||'',
+      data.field1||'', data.field2||''
+    ]);
+    return json({status:'ok'});
+  }catch(err){return json({status:'error',message:err.message});}
+}
+/** 教師查詢（瀏覽器開 網址?email=xxx，可加 &exp=作業名 篩單份作業） */
+function doGet(e){
+  const email=e&&e.parameter&&e.parameter.email;
+  if(!email) return json({version:VERSION,status:'ready'});
+  try{
+    const all=getSheet().getDataRange().getValues();
+    if(all.length&lt;2) return json({status:'ok',headers:HEADERS,rows:[]});
+    const headers=all[0], emailCol=headers.indexOf('任課老師信箱'), expCol=headers.indexOf('作業');
+    const expFilter=e.parameter.exp||'';
+    const rows=all.slice(1).filter(r=>String(r[emailCol]).trim()===email.trim()
+      &&(!expFilter||expCol===-1||String(r[expCol]).trim()===expFilter));
+    return json({status:'ok',headers:headers,rows:rows});
+  }catch(err){return json({status:'error',message:err.message});}
+}
+function json(o){return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);}
+/** 測試用：寫入一筆假資料 */
+function testWrite(){
+  const sheet=getSheet(); ensureHeaders(sheet);
+  sheet.appendRow(['測試',new Date().toLocaleString('zh-TW'),'高二甲','08','王小明','teacher@school.edu.tw','test1','test2']);
+}</pre>
+  </div>
+
+  <div class="card">
+    <div class="copybar"><div class="ct" style="margin:0;">前端串接程式碼（學生端送出）</div><button class="copybtn" onclick="copyCode('code-fe',this)">📋 複製程式碼</button></div>
+    <div class="cb rd"><strong>鐵則：</strong>用 <code>URLSearchParams</code> 包一個 <code>data</code> 欄位裝 JSON 字串（屬「簡單請求」，不觸發 CORS preflight）。絕對不要用 <code>Content-Type: application/json</code>，會被瀏覽器的 preflight 擋死，GAS 收不到（實測踩過）。</div>
+    <pre id="code-fe">const GAS_URL='https://script.google.com/macros/s/★部署網址/exec';
+
+async function submitAnswers(){
+  const payload={
+    exp:'作業名稱',                                  // 多作業共用後台的區分鍵
+    timestamp:new Date().toLocaleString('zh-TW'),
+    cls:document.getElementById('cls').value.trim(),
+    seat:document.getElementById('seat').value.trim(),
+    name:document.getElementById('name').value.trim(),
+    teacherEmail:document.getElementById('teacherEmail').value.trim(),
+    field1:'...',                                    // 鍵名須與 GAS doPost 的 data.xxx 一致
+  };
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='送出中…';
+  try{
+    const res=await fetch(GAS_URL,{method:'POST',body:new URLSearchParams({data:JSON.stringify(payload)})});
+    const out=await res.json();
+    btn.textContent=out.status==='ok'?'✅ 已送出':'❌ 失敗，請再試';
+    if(out.status!=='ok')btn.disabled=false;
+  }catch(err){btn.textContent='❌ 網路錯誤，請再試';btn.disabled=false;}
+}</pre>
+    <p class="small">實作要點：送出鈕三態（可按、送出中、已送出）防連按；必填檢查班級座號姓名與老師信箱；成功後保留畫面作答內容供學生截圖自存。</p>
+  </div>
+
+  <div class="card">
+    <div class="ct">部署 SOP（品項端做，一次性，約十分鐘；老師不經手）</div>
+    <table>
+      <tr><th style="width:56px;">步驟</th><th>操作</th></tr>
+      <tr><td>1</td><td>用<strong>產品所屬的 Google 帳號</strong>開 <code>sheets.new</code> 建新試算表並命名（不用建表頭，程式會自動建）</td></tr>
+      <tr><td>2</td><td>試算表選單：擴充功能 → Apps Script，開啟編輯器</td></tr>
+      <tr><td>3</td><td>清空 <code>程式碼.gs</code>，貼上上方後台程式碼，儲存</td></tr>
+      <tr><td>4</td><td>函式下拉選 <code>testWrite</code> 按執行 → 跳授權視窗 → 選帳號 → 「進階」→「前往專案（不安全）」→ 允許。這是自己寫給自己用的程式，此警告屬正常</td></tr>
+      <tr><td>5</td><td>回試算表確認出現藍色表頭＋一筆假資料，刪掉假資料</td></tr>
+      <tr><td>6</td><td>部署 → 新增部署作業 → 類型選「網路應用程式」</td></tr>
+      <tr><td>7</td><td>執行身分選「<strong>我</strong>」；誰可以存取選「<strong>任何人</strong>」（必選，否則學生端會被 Google 登入頁擋住）</td></tr>
+      <tr><td>8</td><td>按部署，複製網路應用程式網址（<code>…/exec</code> 結尾），填入前端的 <code>GAS_URL</code></td></tr>
+      <tr><td>9</td><td>瀏覽器直接開該網址，看到 <code>{"status":"ready"}</code> 即部署成功</td></tr>
+    </table>
+    <div class="cb am"><strong>★最常見卡點（重新部署）：</strong>改完程式碼按儲存，線上版本不會更新。必須：部署 → 管理部署作業 → 鉛筆圖示 → 版本選「新版本」→ 部署。網址不變，內容才會換新。判斷法：改 VERSION 字串，重新部署後開網址看版本有沒有變。</div>
+  </div>
+
+  <div class="card">
+    <div class="ct">除錯順序與常見錯誤</div>
+    <p class="small">前端送出沒反應時，照順序切分問題：① 開部署網址（無參數）沒回 ready ＝部署問題 → 重走 SOP 6 到 9；② GAS 跑 testWrite 後 Sheet 沒資料＝腳本或授權問題 → 重走 SOP 4；③ 瀏覽器 F12 Console 出現 CORS 字樣＝前端用了 JSON header → 改用 URLSearchParams；④ Sheet 有資料但欄位錯位＝appendRow 順序與 HEADERS 不一致。</p>
+    <table>
+      <tr><th>症狀</th><th>原因</th><th>解法</th></tr>
+      <tr><td>開網址跳 Google 登入頁</td><td>存取權沒設「任何人」</td><td>重新部署，改存取權</td></tr>
+      <tr><td>送出後 Sheet 沒資料</td><td>改程式沒重新部署／欄位鍵名對不上</td><td>發新版本；比對 doPost 鍵名</td></tr>
+      <tr><td>testWrite 沒反應</td><td>授權未完成</td><td>重做 SOP 步驟 4</td></tr>
+      <tr><td>網址開出來是舊行為</td><td>用到舊部署網址或沒發新版本</td><td>管理部署作業確認 VERSION</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════ ④ 導入須知 ═══════════ -->
+<div class="panel" id="p3">
+  <div class="card">
+    <div class="ct">規劃品項時要預留的設計</div>
+    <table>
+      <tr><th style="width:190px;">項目</th><th>說明</th></tr>
+      <tr><td>基本資料欄</td><td>班級、座號、姓名、任課老師信箱四欄，送出前做必填檢查</td></tr>
+      <tr><td>送出按鈕</td><td>三態設計（可按、送出中、已送出）；頁面上加「重新整理會遺失作答」提醒</td></tr>
+      <tr><td>作答欄位清單</td><td>規劃時先列出要收哪些欄位（含教材自動打包的互動資料），交給數編對應 HEADERS</td></tr>
+      <tr><td>後台歸屬</td><td>統一部署在數位產品所屬的 Google 帳號（老師零建置）；建議一個品項一張試算表</td></tr>
+      <tr><td>備援繳交</td><td>建議同時保留「複製文字版」或「下載檔案」按鈕，網路異常時學生仍能交</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="ct">個資與安全注意</div>
+    <div class="cb rd"><strong>核心觀念：</strong>部署時存取權設「任何人」，意思是知道網址的人都能送資料、也能帶信箱參數查詢。因此有三條規矩：</div>
+    <p style="font-size:14px;">一、<strong>不收敏感個資</strong>：班級座號姓名即可，不收身分證字號、電話、住址。二、<strong>查詢隔離是靠信箱篩選</strong>：老師只查得到「學生填了他信箱」的資料；但知道別人信箱的人理論上也能查，若品項在意此點，可在查詢加通關金鑰（<code>if(e.parameter.key!=='金鑰')return json({status:'denied'});</code>），金鑰隨品項發給老師。三、<strong>查詢頁連結只提供給老師</strong>，不放在學生頁面。</p>
+    <p style="font-size:14px;margin-top:8px;">資料集中存放在產品所屬帳號，公司即為資料保管方。規劃時請一併決定：保存期限（例如學期末清空或封存）、誰能開啟總表、以及品項下架時的資料處理方式。</p>
+  </div>
+
+  <div class="card">
+    <div class="ct">支援與責任劃分</div>
+    <p style="font-size:14px;">本站提供的是<strong>架構參考與通用模板</strong>，已在物理科品項實戰驗證。各品項導入時的客製、測試與維護，由接手該品項的數編負責；本站的技術規格分頁（含除錯順序）即為交接給數編的規格文件。</p>
+    <div class="cb"><strong>導入流程建議：</strong>規劃端確認要收的欄位清單 → 把本站網址交給數編 → 數編依技術規格實作與測試 → 上線前用「除錯順序」四步驟驗收。</div>
+    <p class="small" style="margin-top:10px;">諮詢窗口：（此處由發布者填入）</p>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function swTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+  window.scrollTo({top:0});
+}
+/* ══ 現場示範（模擬模式；接真實後台時把 DEMO_GAS_URL 填上即自動切換）══ */
+const DEMO_GAS_URL='https://script.google.com/macros/s/AKfycbxZWuKrjyDcP3yhHfnLDEd3m-rfMw94THfxdYkJCUW-vxOkXwnqkWljctphUnEz_qt7/exec';   // 已接上示範後台（產品帳號）
+const demoRows=[];
+document.addEventListener('DOMContentLoaded',()=>{
+  if(DEMO_GAS_URL){
+    document.getElementById('mode-badge').textContent='真實後台';
+    document.getElementById('mode-badge').classList.add('live');
+    document.getElementById('mode-desc').textContent='本示範已接上真實後台：按送出，資料會實際寫進產品帳號的 Google 試算表；再到老師端輸入信箱，把資料從雲端查詢回來。';
+    const st=document.getElementById('sheet-title'); if(st)st.textContent='📋 查詢結果（來自雲端試算表）';
+  }
+});
+function demoSubmit(){
+  const g=id=>document.getElementById(id).value.trim();
+  if(!g('d-cls')||!g('d-seat')||!g('d-name')||!g('d-email')){alert('請先填完班級、座號、姓名與老師信箱（必填檢查示範）');return;}
+  const btn=document.getElementById('d-submit');
+  btn.disabled=true;btn.textContent='送出中…';
+  const row=[new Date().toLocaleString('zh-TW'),g('d-cls'),g('d-seat'),g('d-name'),g('d-email'),g('d-q1')||'（未填）',document.getElementById('d-q2').value];
+  const finish=ok=>{
+    btn.textContent=ok?'✅ 已送出':'❌ 失敗，請再試';
+    if(!ok)btn.disabled=false;
+    if(ok&&!DEMO_GAS_URL){demoRows.push(row);renderSheet(demoRows);}
+    if(ok&&DEMO_GAS_URL){
+      const tip=document.createElement('p');tip.className='demo-note';tip.style.color='#166534';
+      tip.textContent='資料已送進雲端試算表。換老師視角：到下方輸入剛才填的老師信箱按「查詢」，把它從雲端領回來。';
+      btn.parentNode.appendChild(tip);setTimeout(()=>tip.remove(),12000);
+    }
+    setTimeout(()=>{btn.textContent='✅ 送出作業';btn.disabled=false;},2500);
+  };
+  if(!DEMO_GAS_URL){setTimeout(()=>finish(true),900);return;}
+  const payload={exp:'示範學習單',timestamp:row[0],cls:row[1],seat:row[2],name:row[3],teacherEmail:row[4],field1:row[5],field2:row[6]};
+  fetch(DEMO_GAS_URL,{method:'POST',body:new URLSearchParams({data:JSON.stringify(payload)})})
+    .then(r=>r.json()).then(o=>finish(o.status==='ok')).catch(()=>finish(false));
+}
+function renderSheet(rows){
+  const tb=document.querySelector('#d-sheet tbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--gray);">查無資料</td></tr>';return;}
+  tb.innerHTML=rows.map(r=>'<tr>'+r.map(c=>'<td>'+String(c).replace(/</g,'&lt;')+'</td>').join('')+'</tr>').join('');
+}
+function demoQuery(){
+  const q=document.getElementById('d-query').value.trim();
+  if(!q){alert('請輸入老師信箱');return;}
+  if(!DEMO_GAS_URL){renderSheet(demoRows.filter(r=>r[4]===q));return;}
+  fetch(DEMO_GAS_URL+'?email='+encodeURIComponent(q)).then(r=>r.json())
+    .then(o=>renderSheet((o.rows||[]).map(r=>[r[1],r[2],r[3],r[4],r[5],r[6],r[7]])))
+    .catch(()=>alert('查詢失敗，請確認後台部署'));
+}
+function copyCode(id,btn){
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    const t=btn.textContent;btn.textContent='✅ 已複製';setTimeout(()=>btn.textContent=t,1800);
+  });
+}
+</script>
+</body>
+</html>
