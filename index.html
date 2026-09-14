@@ -218,7 +218,7 @@ function testWrite(){
 
   <div class="card">
     <div class="copybar"><div class="ct" style="margin:0;">前端串接程式碼（學生端送出）</div><button class="copybtn" onclick="copyCode('code-fe',this)">📋 複製程式碼</button></div>
-    <div class="cb rd"><strong>鐵則：</strong>用 <code>URLSearchParams</code> 包一個 <code>data</code> 欄位裝 JSON 字串（屬「簡單請求」，不觸發 CORS preflight）。絕對不要用 <code>Content-Type: application/json</code>，會被瀏覽器的 preflight 擋死，GAS 收不到（實測踩過）。</div>
+    <div class="cb rd"><strong>鐵則：</strong>用 <code>URLSearchParams</code> 包一個 <code>data</code> 欄位裝 JSON 字串（屬「簡單請求」，不觸發 CORS preflight）。絕對不要用 <code>Content-Type: application/json</code>，會被瀏覽器的 preflight 擋死，GAS 收不到（實測踩過）。另外：GAS 冷啟動可能十幾秒到半分鐘、企業網路的安全檢查偶爾會讓「回應讀取」失敗但資料其實已寫入，所以送出鈕要有耐心提示，且<strong>失敗時先用 GET 查詢核實一次再判定</strong>（實測踩過：畫面顯示失敗、試算表其實有資料）。</div>
     <pre id="code-fe">const GAS_URL='https://script.google.com/macros/s/★部署網址/exec';
 
 async function submitAnswers(){
@@ -262,7 +262,7 @@ async function submitAnswers(){
 
   <div class="card">
     <div class="ct">除錯順序與常見錯誤</div>
-    <p class="small">前端送出沒反應時，照順序切分問題：① 開部署網址（無參數）沒回 ready ＝部署問題 → 重走 SOP 6 到 9；② GAS 跑 testWrite 後 Sheet 沒資料＝腳本或授權問題 → 重走 SOP 4；③ 瀏覽器 F12 Console 出現 CORS 字樣＝前端用了 JSON header → 改用 URLSearchParams；④ Sheet 有資料但欄位錯位＝appendRow 順序與 HEADERS 不一致。</p>
+    <p class="small">前端送出沒反應時，照順序切分問題：① 開部署網址（無參數）沒回 ready ＝部署問題 → 重走 SOP 6 到 9；② GAS 跑 testWrite 後 Sheet 沒資料＝腳本或授權問題 → 重走 SOP 4；③ 瀏覽器 F12 Console 出現 CORS 字樣＝前端用了 JSON header → 改用 URLSearchParams；④ Sheet 有資料但欄位錯位＝appendRow 順序與 HEADERS 不一致；⑤ 畫面顯示失敗但 Sheet 有資料＝回應讀取失敗（冷啟動或企業網路安全檢查），非真失敗 → 前端失敗時先 GET 查詢核實再判定。</p>
     <table>
       <tr><th>症狀</th><th>原因</th><th>解法</th></tr>
       <tr><td>開網址跳 Google 登入頁</td><td>存取權沒設「任何人」</td><td>重新部署，改存取權</td></tr>
@@ -340,8 +340,17 @@ function demoSubmit(){
   };
   if(!DEMO_GAS_URL){setTimeout(()=>finish(true),900);return;}
   const payload={exp:'示範學習單',timestamp:row[0],cls:row[1],seat:row[2],name:row[3],teacherEmail:row[4],field1:row[5],field2:row[6]};
+  const slowTip=setTimeout(()=>{btn.textContent='送出中…（雲端後台喚醒中，最長約半分鐘）';},4000);
+  const verify=async()=>{        // 回應讀取失敗時，改用查詢向雲端核實是否已寫入
+    try{
+      const r=await fetch(DEMO_GAS_URL+'?email='+encodeURIComponent(row[4]));
+      const o=await r.json();
+      return (o.rows||[]).some(x=>String(x[1])===row[0]&&String(x[4])===row[3]);
+    }catch(e){return false;}
+  };
   fetch(DEMO_GAS_URL,{method:'POST',body:new URLSearchParams({data:JSON.stringify(payload)})})
-    .then(r=>r.json()).then(o=>finish(o.status==='ok')).catch(()=>finish(false));
+    .then(r=>r.json()).then(o=>{clearTimeout(slowTip);finish(o.status==='ok');})
+    .catch(async()=>{clearTimeout(slowTip);btn.textContent='確認中…';finish(await verify());});
 }
 function renderSheet(rows){
   const tb=document.querySelector('#d-sheet tbody');
